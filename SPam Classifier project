@@ -1,0 +1,62 @@
+import pandas as pd
+messages = pd.read_csv('D:\Python\SMSSpamCollection', sep ='\t', names = ['label','message'])
+messages
+#Data cleaning and preprocessing
+import re #we use re to lower the words so that we get consistent case throughout.
+import nltk #we need nltk for stopwords and lemmatisation and stemming. stemming helps us to find the base words
+nltk.download('stopwords') #we use stopwords so that we remove the unwanted words
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+ps = PorterStemmer()
+corpus = []
+
+for i in range(len(messages)):
+    review = re.sub('[^a-zA-Z]',' ', messages['message'][i]) #substitute everything from all the messages and remove everything except a-z and A-Z and replace with space.
+    review = review.lower()
+    review = review.split() #split the sentence and get a list of words. So that these words can be compared with stopwords
+    review = [ps.stem(word) for word in review if not word in stopwords.words('english')] #for word in reviewif that word is not in english stopwords. Then take that word and apply stemming.
+    review = ' '.join(review) #join all the words together
+    corpus.append(review) #now append them to corpus list.
+corpus
+messages
+#create Bag of Words
+from sklearn.feature_extraction.text import CountVectorizer #import CountVectorizer as it is used for bag of words vector matrix creation
+
+#Initital the CountVectorizer
+cv = CountVectorizer(max_features = 5000)
+x = cv.fit_transform(corpus).toarray()
+x.shape
+#as can be seen from the shape that there are 6296 words. 
+#so we applied max features and only selected 5000 words.
+#now that we want to have dummies for the label column as we cannot use it directly like that. 
+y = pd.get_dummies(messages['label']) #wwe applied the dummies on label column
+y
+#now that we have two columns which are representing the same variable so even if we remove any one either ham or spam we will get the other one for sure
+y = y.iloc[:,1].values
+y #so we converted the entire column into one column only
+#so now we have x and y both. x is the independent variable and y is the dependent variable
+# Train Test Split
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.20, random_state = 0)
+X_test
+#for this classification we will use naive bayes technique. It works good for MLP
+# Training model using Naive bayes classifier
+
+from sklearn.naive_bayes import MultinomialNB #is the library
+spam_detect_model = MultinomialNB().fit(X_train, y_train)
+
+spam_detect_model
+
+y_pred=spam_detect_model.predict(X_test)
+
+y_pred
+#to understand the accuracy of the result we need to compare y_pred with y_test
+#weuse confusion matrix for that
+from sklearn.metrics import confusion_matrix
+confusion_m = confusion_matrix(y_test,y_pred)
+confusion_m
+#now check the accuracy
+from sklearn.metrics import accuracy_score
+accuracy = accuracy_score(y_test,y_pred)
+accuracy
